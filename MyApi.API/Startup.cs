@@ -11,6 +11,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using MyApi.API.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace MyApi.API
 {
@@ -33,6 +35,15 @@ namespace MyApi.API
                     Version = "v1"
                 });
             });
+
+            services.AddControllersWithViews()
+                .AddNewtonsoftJson(options =>
+                options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
+            );
+
+            services.AddDbContext<AppDbContext>(options =>
+                options.UseSqlServer("Server=tcp:localhost,1401;Initial Catalog=MyApiTest;User ID=sa;Password=Leonardo@dti;")
+            );
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -57,6 +68,14 @@ namespace MyApi.API
             {
                 endpoints.MapControllers();
             });
+
+            //run migrations when application starts
+            using (var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope())
+            {
+                var appDbContext = serviceScope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                appDbContext.Database.Migrate();
+            }
         }
     }
 }
